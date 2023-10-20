@@ -5,7 +5,7 @@ const path = require('node:path');
 const { Client, GatewayIntentBits, Collection, Events } = require('discord.js');
 const { token } = require('./config.json');
 const {createAudioPlayer,getVoiceConnection,VoiceConnectionStatus,joinVoiceChannel,createAudioResource} = require('@discordjs/voice');
-const ytdl = require('ytdl-core');
+const playdl = require('play-dl');
 const queue = require('./commands/queue');
 // Create a new client instance
 const client = new Client({ intents: [GatewayIntentBits.Guilds,GatewayIntentBits.GuildVoiceStates] });
@@ -74,9 +74,9 @@ client.on('interactionCreate', async interaction => {
 });
 
 async function agregarCola(interaction,url){
-	const name = await ytdl.getBasicInfo(url);
+	const name = await playdl.video_basic_info(url);
 		const cancion = {
-			nombre: name.videoDetails.title,
+			nombre: name.video_details.title,
 			url : url
 		};
 		cola.push(cancion);
@@ -113,7 +113,7 @@ client.on(Events.InteractionCreate, async interaction => {
 	}
 });
 
-function play(interaction,cola){
+async function play(interaction,cola){
 	player = createAudioPlayer();
 	let connection = getVoiceConnection(interaction.guild.id);
 	const voiceChannel = interaction.member.voice.channel; 
@@ -138,11 +138,10 @@ function play(interaction,cola){
 		  });
 	}
 	const sub = connection.subscribe(player);
-	const resource = createAudioResource(ytdl(nowplaying.url,{
-		filter: "audioonly",
-		quality: 'highestaudio',
-		highWaterMark: 1 << 25
-	}));
+	const stream = await playdl.stream(nowplaying.url);
+	let resource = createAudioResource(stream.stream,{
+		inputType: stream.type
+	});
 	interaction.channel.send('Reproduciendo '+ nowplaying.nombre + ' en ' + voiceChannel.name );
 	
 	
